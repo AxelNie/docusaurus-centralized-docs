@@ -1,0 +1,54 @@
+name: Update and Organize Docs
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'  # Matches tags starting with 'v'
+
+jobs:
+  update_docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - run: |
+          echo "@axelnie:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Move npm package files to docs folder
+        run: |
+          # Define the target folder
+          TARGET_FOLDER="./docs"
+          PACKAGE_FOLDER="./node_modules/@axelnie/sampledocumentationapp"
+
+          # Ensure the target folder exists
+          mkdir -p $TARGET_FOLDER
+
+          # Copy package files to the target folder
+          cp -r $PACKAGE_FOLDER/* $TARGET_FOLDER/
+
+      - name: Commit and push updated docs
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/
+          git commit -m "Update docs from npm package"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
